@@ -1,0 +1,190 @@
+url: https://joonho112.github.io/ebrecipe
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  # man/figures/logo.svg is auto-detected by pkgdown
+  # and rendered in the navbar + home sidebar.
+
+home:
+  title: ebrecipe
+  description: >
+    Log-spline empirical Bayes workflows for the
+    estimate → denoise → decide recipe.
+
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: '--- Applied Track ---'
+      - text: A1 · Getting started
+        href: articles/a1-getting-started.html
+      - text: A2 · Discrimination workflow
+        href: articles/a2-discrimination-workflow.html
+      - text: A3 · School VAM workflow
+        href: articles/a3-school-vam-workflow.html
+      - text: A4 · Diagnostics & standardization
+        href: articles/a4-diagnostics-and-standardization.html
+      - text: A5 · Visualization cookbook
+        href: articles/a5-visualization-cookbook.html
+      - text: '--- Methodological Track ---'
+      - text: M1 · EB recipe foundations
+        href: articles/m1-eb-recipe-foundations.html
+      - text: M2 · Linear EB (Normal-Normal)
+        href: articles/m2-linear-eb-normal-normal.html
+      - text: M3 · Log-spline deconvolution
+        href: articles/m3-logspline-deconvolution.html
+      - text: M4 · Precision dependence & FDR
+        href: articles/m4-precision-dependence-and-fdr.html
+      - text: M5 · Replication & reproducibility
+        href: articles/m5-replication-and-reproducibility.html
+
+articles:
+- title: Applied Track
+  desc: >
+    Workflow-oriented guides for real-data analysis, diagnostics, and
+    figure reproduction. Each vignette walks one full pipeline with
+    console output and plots rendered as you read.
+  navbar: ~
+  contents:
+  - a1-getting-started
+  - a2-discrimination-workflow
+  - a3-school-vam-workflow
+  - a4-diagnostics-and-standardization
+  - a5-visualization-cookbook
+
+- title: Methodological Track
+  desc: >
+    Theory, derivations, algorithmic detail, and reproducibility
+    policy for the EB recipe engine. Every displayed equation is
+    followed by a verification chunk in code.
+  navbar: ~
+  contents:
+  - m1-eb-recipe-foundations
+  - m2-linear-eb-normal-normal
+  - m3-logspline-deconvolution
+  - m4-precision-dependence-and-fdr
+  - m5-replication-and-reproducibility
+
+reference:
+- title: Package overview & data
+  desc: Bundled datasets and package-level documentation.
+  contents:
+  - ebrecipe-package
+  - krw_firms
+  - vam_simulated
+  - vam_schools
+
+- title: Complete workflows
+  desc: One-call entry points that run the full empirical-Bayes recipe.
+  contents:
+  - eb
+  - eb_vam
+  - eb_test
+  - eb_control
+
+- title: "Family — Estimates and input"
+  desc: Wrap precomputed estimates, fit fixed effects, or simulate data.
+  contents:
+  - has_concept("eb_estimates")
+  - as_eb_estimates.eb_sim   # explicit fallback (no concept tag)
+
+- title: "Family — Diagnostics"
+  desc: Detect and characterize precision dependence before deconvolution.
+  contents:
+  - has_concept("eb_diagnostic")
+
+- title: "Family — Prior"
+  desc: Coercion, change-of-variables, and log-spline deconvolution.
+  contents:
+  - has_concept("eb_prior")
+  - eb_deconvolve     # explicit fallback — frozen-core, no @concept tag
+
+- title: "Family — Posterior"
+  desc: Shrinkage, reliability, and posterior summaries.
+  contents:
+  - has_concept("eb_posterior")
+
+- title: "Family — Fit (monolith helpers)"
+  desc: Convenience helpers that consume or extend an eb_fit object.
+  contents:
+  - has_concept("eb_fit")
+
+- title: "Family — Classification & decision"
+  desc: FDR-controlled selection, ranking, and Storey's π₀.
+  contents:
+  - has_concept("eb_classification")
+
+- title: "Family — CLI formatters"
+  desc: >
+    Eight opt-in cli-decorated formatters that render rich console output —
+    `format_eb_classification_cli()`, `format_eb_diagnostic_cli()`,
+    `format_eb_estimates_cli()`, `format_eb_fit_cli()`,
+    `format_eb_posterior_cli()`, `format_eb_precision_fit_cli()`,
+    `format_eb_prior_cli()`, and `format_eb_vam_fit_cli()`. All eight are
+    documented in a single multi-alias topic.
+  contents:
+  - format_eb_cli   # 8 aliases inside this one .Rd
+
+- title: "Family — Autoplot"
+  desc: ggplot2 autoplot dispatch for ebrecipe S3 classes.
+  contents:
+  - has_concept("eb_autoplot")
+
+- title: Verified visualization
+  desc: >
+    Companion-parity plotting (Lane A protected), VAM-specific plots
+    (Lane B), workflow dashboards, and theming.
+  contents:
+  - plot_mixing_distribution
+  - plot_posterior_overlay
+  - plot_shrinkage_comparison
+  - plot_fdr_histogram
+  - plot_decision_frontier
+  - plot_vam_prior_posterior
+  - plot_vam_truth_shrinkage
+  - plot_results
+  - plot_diagnostics
+  - plot_decision
+  - theme_ebrecipe
+  - ebrecipe_palette
+
+- title: S3 object methods
+  desc: Print, summary, coef, predict, broom, autoplot, and friends.
+  contents:
+  - eb_estimates_methods
+  - eb_prior_methods
+  - eb_posterior_methods
+  - eb_diagnostic_methods
+  - eb_classification_methods
+  - eb_fit_methods
+  - eb_sim_methods
+  - eb_control_methods
+  - predict_eb_fit
+  - predict_eb_prior
+  - eb_estimates_broom
+  - eb_prior_broom
+  - eb_posterior_broom
+  - eb_diagnostic_broom
+  - eb_precision_fit_broom
+  - eb_classification_broom
+  - eb_fit_broom
+  - eb_sim_broom
+  - plot_eb_estimates
+  - plot_eb_prior
+  - plot_eb_posterior
+  - plot_eb_diagnostic
+  - plot_eb_fit
+  - plot_eb_sim
+
+- title: Numerical utilities & accessors
+  desc: Small helpers and typed accessors used in advanced workflows.
+  contents:
+  - eb_log_sum_exp
+  - eb_delta_method
+  - precision_fit
+  - selected_units

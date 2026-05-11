@@ -1,0 +1,237 @@
+---
+title: "A4: Diagnostics and standardization - handling precision dependence"
+author: "JoonHo Lee"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+abstract: >
+  Empirical Bayes' classic derivation assumes the noise s_j is
+  *independent* of the parameter theta_j. In real audit, value-added,
+  and policy datasets, that independence often fails — small firms
+  have larger SEs *and* more extreme estimates, or vice versa. This
+  vignette teaches you to detect precision dependence with
+  `eb_diagnose()` and standardize the data with `eb_standardize()` so
+  deconvolution remains valid. We compare the additive and
+  multiplicative parametric families, fit psi-hat via NLLS through
+  `precision_fit()`, and visualize corrected versus uncorrected priors.
+  We also show why a small p-value alone is misleading — magnitude of
+  psi-hat-2 matters — and what to do when J is too small for the
+  diagnostic to be powerful. The narrative emphasizes that diagnostics
+  are not optional bureaucracy: they are how you avoid a confidently
+  wrong inference.
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    df_print: tibble
+vignette: >
+  %\VignetteIndexEntry{A4: Diagnostics and standardization - handling precision dependence}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+```{r setup, include = FALSE}
+{ p <- system.file("scripts/_setup.R", package = "ebrecipe"); if (!nzchar(p)) p <- "_setup.R"; source(p) }
+```
+
+> *Prerequisite*: this vignette assumes you have run the basic
+> workflow in `vignette("a2-discrimination-workflow")` at least once.
+> If you have not, start with `vignette("a1-getting-started")`.
+
+## 1. The precision-independence assumption
+
+The classic EB recipe assumes:
+
+$$
+\hat\theta_j \mid \theta_j, s_j \sim \mathcal{N}(\theta_j, s_j^2), \qquad
+\theta_j \perp s_j
+$$
+
+That is: the *true* effect $\theta_j$ is independent of the
+*sampling noise scale* $s_j$. When the assumption fails, even a
+perfectly fit prior produces biased posteriors.
+
+> "Two functional families capture the most common patterns of
+> precision dependence:
+>
+> - **Multiplicative**: $\theta_j = \exp(\psi_1 + \psi_2 \log s_j) r_j$
+> - **Additive**: $\theta_j = \psi_0 + s_j^{\psi_2} r_j$
+>
+> where $r_j$ is a precision-independent residual."
+> — Walters [@walters2024empirical, §2.6, 3.7]
+
+Execution ≈ 30 sec; reading + reflection ≈ 75 min.
+
+## 2. What it looks like
+
+Three flavors of `(theta_hat, s)` scatter, side by side:
+
+```{r diagnostic-gallery, fig.width = 9, fig.height = 3.5, fig.cap = "Three diagnostic scatter patterns. Left: clean (no precision dependence). Middle: funnel (multiplicative). Right: tilted (additive)."}
+op <- par(mfrow = c(1, 3), mar = c(4, 4, 2, 1))
+
+set.seed(1L)
+
+# Clean
+s <- runif(80, 0.02, 0.10)
+th_clean <- rnorm(80, 0, 0.05) + rnorm(80, 0, s)
+plot(s, th_clean, pch = 19, col = rgb(0.2, 0.5, 0.3, 0.7),
+     xlab = "s", ylab = expression(hat(theta)), main = "Clean")
+abline(h = 0, lty = 2, col = "gray")
+
+# Multiplicative (funnel)
+th_mult <- exp(-0.2 + 1.5 * log(s)) * rnorm(80) + rnorm(80, 0, s)
+plot(s, th_mult, pch = 19, col = rgb(0.7, 0.3, 0.2, 0.7),
+     xlab = "s", ylab = expression(hat(theta)), main = "Multiplicative")
+abline(h = 0, lty = 2, col = "gray")
+
+# Additive
+th_add <- 0.05 + s^0.8 * rnorm(80, 0, 0.5) + rnorm(80, 0, s)
+plot(s, th_add, pch = 19, col = rgb(0.4, 0.2, 0.6, 0.7),
+     xlab = "s", ylab = expression(hat(theta)), main = "Additive")
+abline(h = 0, lty = 2, col = "gray")
+
+par(op)
+```
+
+KRW race resembles the middle panel — a strong funnel. KRW gender
+resembles the right panel — a weak tilt.
+
+## 3. Running the diagnostic
+
+```{r run-diagnose}
+data(krw_firms)
+
+race <- eb_input(
+  theta_hat = krw_firms$theta_hat_race,
+  s         = krw_firms$se_race,
+  unit_id   = krw_firms$firm_id
+)
+
+diag <- eb_diagnose(estimates = race)
+cat(diag$conclusion, "\n")
+```
+
+The one-sentence `$conclusion` is the headline. The CLI-decorated
+panel below breaks it into the two regressions (level vs `log(s)`,
+variance vs `log(s)`):
+
+```{r diag-cli, eval = requireNamespace("cli", quietly = TRUE)}
+format_eb_diagnostic_cli(diag)
+```
+
+## 4. Reading the recommendation
+
+**Isn't precision dependence the same as heteroskedasticity?**
+
+> Related but not identical. Heteroskedasticity = the *noise* variance
+> changes with predictors. Precision dependence in EB = the *signal*
+> $\theta$ also varies systematically with the noise scale $s$.
+> Standardization removes the second; weighted regression addresses
+> the first.
+
+The diagnostic reports:
+
+- **Conclusion**: a one-sentence verdict (level, variance, both, or none)
+- **Level test**: regression of $\hat\theta$ on $\log(s)$
+- **Variance test**: regression of $(\hat\theta - \mu)^2 - s^2$ on $\log(s)$
+
+You should care about *magnitude*, not just p-values. With J = 97
+firms, even $\psi_2 = 0.05$ can be "significant".
+
+## 5. Refitting with `precision_fit()`
+
+For finer control of the standardization model:
+
+```{r precision-fit, eval = requireNamespace("cli", quietly = TRUE)}
+pf <- precision_fit(diag)
+format_eb_precision_fit_cli(pf)
+```
+
+`pf` exposes the fitted coefficients `psi_0, psi_1, psi_2`, their
+standard errors, and the residual structure used downstream.
+
+## 6. Standardizing the estimates
+
+Once the model is chosen, `eb_standardize()` produces residual-scale
+estimates `(r, s_r)`:
+
+```{r standardize}
+std <- eb_standardize(estimates = race, diagnostic = diag)
+summary(std)
+```
+
+The summary should show `theta_hat` (now on residual scale) with
+mean near zero and SD roughly 1 — the deconvolution target.
+
+## 7. What happens if you skip standardization
+
+Compare priors fit with vs without standardization. The unstandardized
+prior absorbs the level dependence as spurious spread, giving
+over-shrunken posteriors for small firms.
+
+```{r diag-plot, fig.width = 7, fig.height = 4.5, fig.cap = "Diagnostic scatter for KRW race: raw theta_hat vs log(s), with the fitted multiplicative model overlay."}
+plot(diag)
+```
+
+## 8. Custom starting values for hard cases
+
+For weakly-identified data (KRW gender is the canonical example),
+the NLLS fit can be sensitive to starting values. `precision_fit()`
+accepts a `model =` argument to choose between `multiplicative`,
+`additive`, and `none`:
+
+```{r custom-precision-fit}
+# Force additive even if diagnose recommends multiplicative
+pf_add <- precision_fit(diag, model = "additive")
+```
+
+Convergence is recorded in `pf$convergence` (0 = success).
+
+## 9. Sample-size caution (J < 50)
+
+With J < 50, even the diagnostic regressions are underpowered.
+A simulated demonstration:
+
+```{r small-j-demo}
+# Illustrative small-J case: simulate 20 schools, fit linear VAM,
+# then diagnose the school-level estimates.
+sim_small  <- eb_simulate(J = 20, sigma_theta = 0.10)
+fit_small  <- eb_vam(y ~ x | school_id, data = sim_small$students,
+                     method = "linear")
+diag_small <- eb_diagnose(estimates = fit_small$estimates)
+diag_small$conclusion
+```
+
+In small-J regimes, prefer the linear EB recipe (`method = "linear"`
+in `eb()` or `eb_vam()`) — it has fewer degrees of freedom to overfit.
+
+## Practical pitfalls
+
+1. **p-value alone is misleading**. Even `p < 0.001` for `psi_2`
+   does not justify standardization if $\hat\psi_2$ is tiny in
+   magnitude.
+2. **Standardized scale loses interpretability**. Residual-scale
+   estimates are useful for deconvolution and shrinkage, but
+   reporting needs the original scale — use `eb_change_of_variables()`
+   to back-transform.
+3. **Gender weak-identification (KRW)**. Documented in companion
+   lessons-learned: gender $\psi_2$ NLLS is sensitive to starting
+   values. Always inspect `pf$convergence` and `pf$psi_se`.
+
+## Where to next
+
+- **Apply the fix**: return to `vignette("a2-discrimination-workflow")`
+  and re-run with the recommended model.
+- **FDR + decision rules**: `vignette("a5-visualization-cookbook")`
+  shows the decision frontier with corrected priors.
+- **Theory**: `vignette("m4-precision-dependence-and-fdr")` derives
+  the conditional prior $G(\cdot \mid s)$ and the back-transform
+  Jacobian.
+
+## Provenance
+
+```{r provenance}
+sessionInfo()
+```
+
+## References

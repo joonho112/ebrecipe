@@ -1,0 +1,5 @@
+"contract_version","ledger","relative_path","rows"
+"companion-parity-v1","asset-ledger","inst/extdata/companion-parity/v1/registry/asset-ledger.csv",12
+"companion-parity-v1","target-asset-ledger","inst/extdata/companion-parity/v1/registry/target-asset-ledger.csv",13
+"companion-parity-v1","row-count-ledger","inst/extdata/companion-parity/v1/registry/row-count-ledger.csv",25
+"companion-parity-v1","digest-ledger","inst/extdata/companion-parity/v1/registry/digest-ledger.csv",25

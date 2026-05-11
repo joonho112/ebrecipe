@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 691" width="600" height="691"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><defs>
+    <!-- Hex clip path (point-up) -->
+    <clipPath id="hex-clip">
+      <polygon points="300,15 585,170 585,521 300,676 15,521 15,170"></polygon>
+    </clipPath>
+
+    <!-- Background gradient (deep purple → near-black) -->
+    <radialGradient id="bg-grad" cx="50%" cy="48%" r="65%">
+      <stop offset="0%" stop-color="#3a2752"></stop>
+      <stop offset="60%" stop-color="#2a1b3d"></stop>
+      <stop offset="100%" stop-color="#180e25"></stop>
+    </radialGradient>
+
+    <!-- Subtle prior density curve gradient (faded amber) -->
+    <linearGradient id="prior-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#c98a3c" stop-opacity="0"></stop>
+      <stop offset="50%" stop-color="#c98a3c" stop-opacity="0.10"></stop>
+      <stop offset="100%" stop-color="#e6a85a" stop-opacity="0.18"></stop>
+    </linearGradient>
+
+    <!-- Glow filter for central posterior dots -->
+    <filter id="coral-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="blur"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+
+    <!-- Radial gradient for posterior dot core (bright coral) -->
+    <radialGradient id="posterior-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffb8a8"></stop>
+      <stop offset="60%" stop-color="#ff6b5b"></stop>
+      <stop offset="100%" stop-color="#d94a3a"></stop>
+    </radialGradient>
+  </defs><polygon points="300,15 585,170 585,521 300,676 15,521 15,170" fill="url(#bg-grad)" stroke="#8a6cb0" stroke-width="8"></polygon><g clip-path="url(#hex-clip)" opacity="0.85">
+    <path d="M 80,470
+             C 150,468 200,455 240,418
+             C 270,388 285,330 300,260
+             C 308,228 315,232 322,260
+             C 335,330 350,388 380,418
+             C 420,455 470,468 540,470
+             L 540,480 L 80,480 Z" fill="url(#prior-grad)" stroke="#c98a3c" stroke-opacity="0.22" stroke-width="1.5"></path>
+  </g><g clip-path="url(#hex-clip)" opacity="0.78">
+    <!-- 12 outer raw dots — large, muted, slightly blurred edges -->
+    <circle cx="135" cy="225" r="11" fill="#6b7d8f" opacity="0.72"></circle>
+    <circle cx="465" cy="235" r="10" fill="#7a8b9c" opacity="0.78"></circle>
+    <circle cx="155" cy="445" r="11" fill="#6b7d8f" opacity="0.70"></circle>
+    <circle cx="455" cy="475" r="10" fill="#7a8b9c" opacity="0.74"></circle>
+    <circle cx="305" cy="180" r="11" fill="#6b7d8f" opacity="0.68"></circle>
+    <circle cx="295" cy="540" r="10" fill="#7a8b9c" opacity="0.72"></circle>
+    <circle cx="100" cy="350" r="11" fill="#6b7d8f" opacity="0.70"></circle>
+    <circle cx="500" cy="355" r="10" fill="#7a8b9c" opacity="0.76"></circle>
+    <circle cx="195" cy="160" r="9" fill="#7a8b9c" opacity="0.66"></circle>
+    <circle cx="415" cy="170" r="9" fill="#6b7d8f" opacity="0.68"></circle>
+    <circle cx="200" cy="555" r="9" fill="#7a8b9c" opacity="0.66"></circle>
+    <circle cx="410" cy="555" r="9" fill="#6b7d8f" opacity="0.70"></circle>
+  </g><g clip-path="url(#hex-clip)" opacity="0.62">
+    <!-- 각 raw dot 위치 → 중심(300,360) 방향, 약 50% 지점 -->
+    <!-- (135,225) → (218,293) -->
+    <circle cx="195" cy="278" r="5" fill="#8e8298" opacity="0.65"></circle>
+    <circle cx="240" cy="315" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (465,235) → (383,298) -->
+    <circle cx="405" cy="280" r="5" fill="#8e8298" opacity="0.68"></circle>
+    <circle cx="360" cy="315" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (155,445) → (228,403) -->
+    <circle cx="205" cy="420" r="5" fill="#8e8298" opacity="0.65"></circle>
+    <circle cx="250" cy="395" r="3.5" fill="#b08070" opacity="0.60"></circle>
+    <!-- (455,475) → (378,418) -->
+    <circle cx="400" cy="445" r="5" fill="#8e8298" opacity="0.68"></circle>
+    <circle cx="355" cy="410" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (305,180) → (303,270) -->
+    <circle cx="303" cy="225" r="5" fill="#8e8298" opacity="0.65"></circle>
+    <circle cx="302" cy="265" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (295,540) → (298,450) -->
+    <circle cx="297" cy="495" r="5" fill="#8e8298" opacity="0.65"></circle>
+    <circle cx="298" cy="455" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (100,350) → (200,355) -->
+    <circle cx="160" cy="353" r="5" fill="#8e8298" opacity="0.65"></circle>
+    <circle cx="215" cy="356" r="3.5" fill="#b08070" opacity="0.62"></circle>
+    <!-- (500,355) → (400,358) -->
+    <circle cx="440" cy="356" r="5" fill="#8e8298" opacity="0.68"></circle>
+    <circle cx="385" cy="358" r="3.5" fill="#b08070" opacity="0.62"></circle>
+  </g><g clip-path="url(#hex-clip)" filter="url(#coral-glow)">
+    <!-- 중심 클러스터 — 6 posterior dots, 작고 또렷 -->
+    <circle cx="300" cy="350" r="7.5" fill="url(#posterior-dot)"></circle>
+    <circle cx="278" cy="368" r="6.5" fill="url(#posterior-dot)"></circle>
+    <circle cx="322" cy="370" r="6.5" fill="url(#posterior-dot)"></circle>
+    <circle cx="288" cy="338" r="5.5" fill="url(#posterior-dot)"></circle>
+    <circle cx="315" cy="340" r="5.5" fill="url(#posterior-dot)"></circle>
+    <circle cx="305" cy="382" r="5.0" fill="url(#posterior-dot)"></circle>
+  </g><circle cx="300" cy="358" r="2.5" fill="#fff5e8" opacity="0.95"></circle><text x="300" y="585" text-anchor="middle" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="58" font-weight="600" letter-spacing="1.5" fill="#f5f0e6">ebrecipe</text><text x="300" y="616" text-anchor="middle" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="13" font-weight="400" letter-spacing="5" fill="#f5f0e6" opacity="0.55">SHRINKAGE</text></svg>

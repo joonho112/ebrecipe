@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 691"
+     width="600" height="691">
+  <!--
+    ebrecipe navbar/favicon variant.
+
+    At the ~80 px navbar size, the SHRINKAGE subtitle and dot trail of
+    the full hex sticker become illegible. This variant drops the
+    subtitle and trims the trail to a single inward arrow per quadrant
+    so the "ebrecipe" wordmark and the central posterior cluster stay
+    readable when the hex is rendered tiny.
+
+    Pkgdown's brand/navbar logo follows the canonical man/figures/logo.*
+    paths, so this file is provided for direct embedding (header img,
+    docs) rather than as a pkgdown override.
+  -->
+
+  <defs>
+    <clipPath id="hex-clip">
+      <polygon points="300,15 585,170 585,521 300,676 15,521 15,170"/>
+    </clipPath>
+
+    <radialGradient id="bg-grad" cx="50%" cy="48%" r="65%">
+      <stop offset="0%"   stop-color="#3a2752"/>
+      <stop offset="60%"  stop-color="#2a1b3d"/>
+      <stop offset="100%" stop-color="#180e25"/>
+    </radialGradient>
+
+    <radialGradient id="posterior-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ffb8a8"/>
+      <stop offset="60%"  stop-color="#ff6b5b"/>
+      <stop offset="100%" stop-color="#d94a3a"/>
+    </radialGradient>
+  </defs>
+
+  <polygon points="300,15 585,170 585,521 300,676 15,521 15,170"
+           fill="url(#bg-grad)" stroke="#8a6cb0" stroke-width="8"/>
+
+  <!-- Four raw dots, one per cardinal direction, simplified for tiny render -->
+  <g clip-path="url(#hex-clip)" opacity="0.72">
+    <circle cx="135" cy="350" r="14" fill="#6b7d8f"/>
+    <circle cx="465" cy="350" r="14" fill="#7a8b9c"/>
+    <circle cx="300" cy="180" r="14" fill="#6b7d8f"/>
+    <circle cx="300" cy="520" r="14" fill="#7a8b9c"/>
+  </g>
+
+  <!-- Single trail dot per quadrant -->
+  <g clip-path="url(#hex-clip)" opacity="0.6">
+    <circle cx="210" cy="350" r="6" fill="#b08070"/>
+    <circle cx="390" cy="350" r="6" fill="#b08070"/>
+    <circle cx="300" cy="250" r="6" fill="#b08070"/>
+    <circle cx="300" cy="450" r="6" fill="#b08070"/>
+  </g>
+
+  <!-- Bright posterior cluster: 4 large coral dots -->
+  <g clip-path="url(#hex-clip)">
+    <circle cx="300" cy="350" r="22" fill="url(#posterior-dot)"/>
+    <circle cx="270" cy="370" r="14" fill="url(#posterior-dot)"/>
+    <circle cx="330" cy="370" r="14" fill="url(#posterior-dot)"/>
+    <circle cx="300" cy="320" r="14" fill="url(#posterior-dot)"/>
+  </g>
+
+  <circle cx="300" cy="350" r="6" fill="#fff5e8" opacity="0.95"/>
+
+  <!-- Wordmark (no SHRINKAGE subtitle) -->
+  <text x="300" y="595"
+        text-anchor="middle"
+        font-family="'Helvetica Neue', 'Arial', sans-serif"
+        font-size="64"
+        font-weight="600"
+        letter-spacing="1.5"
+        fill="#f5f0e6">ebrecipe</text>
+</svg>

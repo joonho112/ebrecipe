@@ -1,0 +1,213 @@
+---
+title: "A3: School value-added workflow - linear EB on simulated and bundled data"
+author: "JoonHo Lee"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+abstract: >
+  School value-added models (VAMs) are the canonical linear-EB
+  application: school-level random effects shrunken toward a common
+  mean using Normal-Normal closed forms. This vignette teaches the
+  workflow through three increasingly realistic paths — fitting
+  `eb_vam()` directly on student-level simulated data, importing a
+  pre-aggregated school summary, and adjusting for a charter indicator
+  via conditional EB. Because the original Boston administrative data
+  is restricted-access, we use the bundled `vam_simulated` and
+  `vam_schools` datasets, both calibrated to match Angrist et al.
+  (2017). You will recover the true school effects and visualize how
+  shrinkage corrects the over-dispersion of raw point estimates.
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    df_print: tibble
+vignette: >
+  %\VignetteIndexEntry{A3: School value-added workflow - linear EB on simulated and bundled data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+```{r setup, include = FALSE}
+{ p <- system.file("scripts/_setup.R", package = "ebrecipe"); if (!nzchar(p)) p <- "_setup.R"; source(p) }
+{ p <- system.file("scripts/companion-helpers.R", package = "ebrecipe"); if (!nzchar(p)) p <- "companion-helpers.R"; source(p) }
+```
+
+## 1. Why VAM is the canonical linear-EB example
+
+When the prior $G$ on school effects is approximately Gaussian, the
+posterior has a closed form: a precision-weighted convex combination
+of the raw estimate and the prior mean. This is the *linear empirical
+Bayes* (Normal-Normal) recipe, made famous in education by Angrist
+et al. [-@angrist2017leveraging] and reviewed in Walters
+[-@walters2024empirical, §2.8].
+
+> "If you imagine value-added scores as samples from a population
+> distribution of true school effects, then your best guess about
+> any one school's effect is a weighted average of its observed score
+> and the population mean — weighted by precision."
+> — Walters [@walters2024empirical, paraphrasing §2.8]
+
+Execution ≈ 1 min; reading + reflection ≈ 75 min.
+
+## 2. The data: simulated stand-in for Boston
+
+Two bundled datasets back this vignette:
+
+```{r data-load}
+data(vam_simulated)   # 2500 students × 50 schools (DGP truth known)
+data(vam_schools)     # 50 school summaries (theta_hat, se, charter)
+
+str(vam_simulated)
+str(vam_schools)
+```
+
+**Disclosure**: `vam_simulated` is calibrated to the Angrist et al.
+[-@angrist2017leveraging] benchmark on Boston schools, but the
+original administrative data is restricted-access. The simulation
+gives us ground truth (`true_school_fx`), which lets us *verify*
+shrinkage rather than just assert it.
+
+## 3. The math in 5 lines
+
+For a Gaussian prior $\theta_j \sim \mathcal{N}(\mu_\theta, \sigma_\theta^2)$
+and observation model $\hat\theta_j \mid \theta_j, s_j \sim \mathcal{N}(\theta_j, s_j^2)$,
+the posterior is closed-form:
+
+$$
+\theta_j^* = \kappa_j \hat\theta_j + (1 - \kappa_j) \mu_\theta, \qquad
+\kappa_j = \frac{\sigma_\theta^2}{\sigma_\theta^2 + s_j^2}
+$$
+
+The reliability $\kappa_j$ is *learned* from the data via method of
+moments. For derivation and verification, see
+`vignette("m2-linear-eb-normal-normal")`.
+
+## 4. Path A — Student-level fit
+
+The most direct entry point: hand `eb_vam()` student-level data and
+a formula for the school grouping.
+
+```{r path-a-fit}
+fit_a <- eb_vam(
+  y ~ x | school_id,
+  data   = vam_simulated,
+  method = "linear"
+)
+print(fit_a)
+```
+
+## 5. Reading the VAM output
+
+The `<eb_vam_fit>` marker wraps an `<eb_fit>` for the linear EB
+posterior. Key fields:
+
+- **`method = linear`** — Normal-Normal closed form (no log-spline)
+- **`PRIOR`** — `mu`, `sigma_theta_sq` (positive-part MoM)
+- **`POSTERIOR`** — posterior means + `shrinkage_weight` $\kappa_j$
+
+The CLI-decorated panel (optional, requires the `cli` package):
+
+```{r path-a-cli, eval = requireNamespace("cli", quietly = TRUE)}
+format_eb_vam_fit_cli(fit_a)
+```
+
+## 6. Path B — Imported school summary
+
+In practice you often have only school-level point estimates and
+standard errors (not the raw student data). `eb_vam()` accepts that
+shape too:
+
+```{r path-b-fit}
+fit_b <- eb_vam(
+  theta_hat ~ 1 | school_id,
+  data       = vam_schools,
+  se_source  = "vce_matrix",
+  vce_matrix = diag(vam_schools$se^2),
+  method     = "linear"
+)
+print(fit_b)
+```
+
+Path A and Path B should produce nearly identical posteriors when
+the inputs match — verifying that the package's two entry points
+agree.
+
+## 7. Path C — Conditional EB (charter adjustment)
+
+Charter schools may have a systematically different prior mean from
+traditional public schools. Conditional EB lets the prior depend on
+a covariate.
+
+```{r path-c-fit}
+fit_c <- eb_vam(
+  theta_hat ~ 1 | school_id,
+  data           = vam_schools,
+  se_source      = "vce_matrix",
+  vce_matrix     = diag(vam_schools$se^2),
+  conditional_on = ~ charter,
+  method         = "linear"
+)
+print(fit_c)
+```
+
+**Why is my charter school's posterior shifted more?**
+
+> Two reasons combine: (a) charter schools have smaller samples
+> (lower precision → more shrinkage), (b) the conditional prior
+> for charter schools differs from non-charter. Both effects push
+> the posterior away from the raw estimate.
+
+## 8. Visualization triplet
+
+```{r prior-posterior-plot, fig.width = 7, fig.height = 4.5, fig.cap = "Prior vs posterior on simulated Boston-calibrated VAM data. Shrinkage tightens the spread; the prior mean is recovered as the center of mass."}
+plot_vam_prior_posterior(fit_a, method = "unconditional")
+```
+
+```{r truth-shrinkage-plot, fig.width = 7, fig.height = 4.5, fig.cap = "Truth vs raw vs shrunken posterior. Because this is simulated data, we have ground truth — and posterior means visibly track the true effects better than the raw estimates do."}
+plot_vam_truth_shrinkage(fit_a, truth = vam_simulated)
+```
+
+```{r conditional-prior-plot, fig.width = 7, fig.height = 4.5, fig.cap = "Conditional EB: separate priors for charter vs non-charter schools. The two prior means differ; the posteriors inherit that difference."}
+plot_vam_prior_posterior(fit_c, method = "conditional")
+```
+
+## 9. When to escalate to nonparametric
+
+Linear EB assumes the prior is Gaussian. For Boston VAM that is
+approximately true; for fat-tailed problems like firm-level
+discrimination, it is not. If `eb_diagnose()` on your data warns
+of departures from Gaussianity, escalate to the nonparametric path
+(`method = "nonparametric"` or the full `eb()` workflow). See
+`vignette("a2-discrimination-workflow")` for a worked example.
+
+## Practical pitfalls
+
+1. **Simulated ≠ real**. `vam_simulated` is calibrated, not Boston
+   itself. The simulation is for *workflow verification*; external
+   validity claims need real-data sensitivity analyses.
+2. **Charter endogeneity**. `conditional_on = ~ charter` allows
+   the prior to *shift* with charter status; it does *not* identify
+   causal effects of charter status on student outcomes.
+3. **Small J (< 30 schools)**. Even linear EB's MoM estimator is
+   unstable when J is small. `vam_schools` has J = 50, comfortably
+   in range.
+
+## Where to next
+
+- **Basics revisit**: `vignette("a1-getting-started")` if you have
+  not seen the one-call `eb()` yet.
+- **Linear EB theory**: `vignette("m2-linear-eb-normal-normal")`
+  derives the closed forms and the James–Stein bridge.
+- **Nonparametric escalation**: `vignette("a2-discrimination-workflow")`
+  shows the full six-stage recipe.
+- **Log-spline deconvolution theory**: `vignette("m3-logspline-deconvolution")`
+  explains *when* a Gaussian prior is insufficient and what the
+  nonparametric path replaces it with.
+
+## Provenance
+
+```{r provenance}
+sessionInfo()
+```
+
+## References

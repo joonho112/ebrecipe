@@ -1,0 +1,17 @@
+statistic,value
+"n_schools",50
+"n_charter",7
+"n_noncharter",43
+"mu_hat",.01899393
+"sigma_sq_uncond",.04711244
+"sigma_uncond",.21705399
+"mean_lambda_uncond",.60711819
+"sd_theta_hat",.30133915
+"sd_theta_star",.1663461
+"charter_effect",.05935403
+"charter_se",.12379333
+"sigma_sq_cond",.04668828
+"sigma_cond",.21607471
+"mean_lambda_cond",.60528685
+"sd_theta_star_cond",.16661468
+"intercept_noncharter",.01068436

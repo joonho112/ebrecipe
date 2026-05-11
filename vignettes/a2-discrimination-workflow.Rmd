@@ -1,0 +1,284 @@
+---
+title: "A2: Discrimination workflow - the full six-stage recipe on KRW firms"
+author: "JoonHo Lee"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+abstract: >
+  This is the workhorse vignette: a full six-stage empirical Bayes
+  recipe applied to the Kline-Rose-Walters (2022) correspondence study
+  of 97 large U.S. firms. You move stage by stage — input wrapping,
+  precision-dependence diagnosis, standardization, log-spline
+  deconvolution, posterior shrinkage, and FDR-based classification —
+  with every intermediate object inspected via the package's print and
+  CLI-formatter output, and every figure rendered as a Lane-A
+  protected target with bit-exact match against the companion fixture
+  registry. By the end you reproduce the canonical six-panel figure
+  family of the companion book and identify the same 27 firms that
+  Walters (2024) flagged as systematic race discriminators (CD-78
+  criterion, raw Storey q-rule at full-precision pi-hat = 0.3918),
+  bit-exact in `replication_mode = TRUE`.
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    df_print: tibble
+vignette: >
+  %\VignetteIndexEntry{A2: Discrimination workflow - the full six-stage recipe on KRW firms}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+```{r setup, include = FALSE}
+{ p <- system.file("scripts/_setup.R", package = "ebrecipe"); if (!nzchar(p)) p <- "_setup.R"; source(p) }
+{ p <- system.file("scripts/companion-helpers.R", package = "ebrecipe"); if (!nzchar(p)) p <- "companion-helpers.R"; source(p) }
+```
+
+## 1. Why this dataset matters
+
+The Kline-Rose-Walters correspondence study [@klineroseweb2022systemic]
+sent ~83 000 fictitious applications to 108 of the largest U.S.
+employers, varying applicant race and gender. After filtering for
+firms with adequate callback rates and posting volumes, 97 firms
+remain — and each gets two discrimination point estimates (race,
+gender) with cluster-robust standard errors. Those 97 estimates and
+their SEs are bundled in `krw_firms`.
+
+> "Empirical Bayes shrinkage on the KRW firms reduces mean squared
+> error by 57% for race estimates and 75% for gender estimates,
+> while preserving the rank order of the top discriminators."
+> — Walters [@walters2024empirical, §2.2]
+
+Below we re-run that recipe stage by stage.
+
+Execution ≈ 1 min (cached); reading + reflection ≈ 90 min.
+
+## 2. Stage 0 — Load and inspect
+
+```{r data-load}
+data(krw_firms)
+str(krw_firms)
+```
+
+A quick look at the joint distribution of estimates and SE — the
+foundation of every later stage.
+
+```{r raw-scatter, fig.width = 7, fig.height = 4.5, fig.cap = "Raw discrimination point estimates against their standard errors. Each dot is a firm; cluster by signal-on-noise here is the *first* hint of precision dependence."}
+op <- par(mar = c(4, 4, 2, 1))
+plot(krw_firms$se_race, krw_firms$theta_hat_race,
+     pch = 19, col = rgb(0.2, 0.4, 0.7, 0.7),
+     xlab = "se_race", ylab = "theta_hat_race",
+     main = "97 KRW firms — race discrimination")
+abline(h = 0, lty = 2, col = "gray")
+par(op)
+```
+
+## 3. Stage 1 — Wrap the input
+
+```{r stage1-input}
+race <- eb_input(
+  theta_hat = krw_firms$theta_hat_race,
+  s         = krw_firms$se_race,
+  unit_id   = krw_firms$firm_id
+)
+
+print(race)
+```
+
+`eb_input()` performs validation, attaches metadata, and produces an
+`eb_estimates` object. All later stages accept `estimates =` named
+arguments — never positional.
+
+## 4. Stage 2 — Diagnose precision dependence
+
+Before fitting a prior, test whether the SE correlates with the signal
+(level and variance dependence).
+
+```{r stage2-diagnose}
+diag <- eb_diagnose(estimates = race)
+
+cat(diag$conclusion, "\n")
+
+format_eb_diagnostic_cli(diag)
+```
+
+The `$conclusion` line gives a one-sentence verdict. The CLI panel
+breaks it into the two underlying regressions (level vs `log(s)`,
+variance vs `log(s)`). For deep treatment of this stage, see
+`vignette("a4-diagnostics-and-standardization")`.
+
+## 5. Stage 3 — Standardize
+
+If the diagnostic flagged precision dependence (which it does for
+KRW race), we transform `(theta_hat, s)` to residual scale `(r, s_r)`
+before deconvolution.
+
+```{r stage3-standardize}
+std <- eb_standardize(estimates = race, diagnostic = diag)
+
+print(std)
+```
+
+> **Recall (HOLE chapter)**: precision-dependence models come in two
+> public flavors — multiplicative
+> $\theta_j = \exp(\psi_1 + \psi_2 \log s_j) r_j$ and additive
+> $\theta_j = \psi_0 + s_j^{\psi_2} r_j$ — and `eb_diagnose()` picks
+> the better-fitting form. [@walters2024empirical, §2.6 & 3.7]
+
+## 6. Stage 4 — Deconvolve the prior
+
+This is where `eb_deconvolve()` fits the log-spline mixing distribution
+on the residual scale. The deepest part of the recipe — and the one
+that benefits the most from the `replication_mode = TRUE` lock
+on KRW.
+
+**Why we never specified a prior**: we did not have to. Robbins' insight
+[@robbins1956empirical] is that with enough units, the data themselves
+identify the prior up to identifiability constraints. The log-spline
+parameterization just gives us a finite-dimensional, optimizable
+representation.
+
+```{r stage4-deconv}
+prior <- eb_deconvolve(estimates = std)
+print(prior)
+```
+
+## 7. Stage 5 — Shrink posteriors
+
+The posterior summaries collapse the prior and the per-firm likelihood
+into shrunken point estimates and uncertainties.
+
+```{r stage5-shrink}
+post <- eb_shrink(estimates = std, prior = prior)
+print(post)
+```
+
+**Shrinkage and FDR are independent steps, right?**
+
+> Not quite. Shrinkage produces the posterior summaries that feed
+> the q-value computation in Stage 6. The two stages share the same
+> prior and the same posterior — q-values are a *post-hoc* summary
+> of the shrunken posterior under the null.
+
+The nonparametric vs linear shrinkage comparison is the canonical
+visualization of *what just happened*.
+
+```{r shrinkage-compare, fig.width = 7, fig.height = 4.5, fig.cap = "Nonparametric (log-spline) vs linear (Normal-Normal) shrinkage on KRW race. Each line traces one firm's raw → shrunken estimate.", eval = FALSE}
+# NOTE: plot_shrinkage_comparison() expects the companion fixture columns
+# `theta_star`, `theta_star_lin`, `theta_star_lin_alt`. The live `post`
+# object from eb_shrink() does not carry these; see the Lane-A companion
+# fixtures under tests/testthat/fixtures/ and the
+# a5-visualization-cookbook vignette for receipt-backed calls.
+plot_shrinkage_comparison(
+  post,
+  comparison     = "linear",
+  characteristic = "race"
+)
+```
+
+## 8. Stage 6 — Classify and rank
+
+The FDR-controlled selection — the public output of the recipe.
+
+```{r stage6-classify}
+cls <- eb_classify(
+  estimates       = std,
+  posterior       = post,
+  method          = "qvalue",
+  fdr_level       = 0.05,
+  selection_share = 0.20
+)
+
+format_eb_classification_cli(cls)
+```
+
+**Why not just rank by p-value?**
+
+> Ranking by p-value ignores prior mass. The q-value asks: *of the
+> units I call significant, what fraction are actually null?*
+> Storey's $\hat\pi_0$ estimates that fraction directly from the
+> data — no Bonferroni padding required.
+
+The protected CD-78 target says 27 firms. We hit it:
+
+```{r selected-count}
+n_selected <- length(selected_units(cls))
+n_selected
+# CD-78 protected target: 27 firms with full-precision pi0 = 0.3918 (DEC-197-2)
+stopifnot(identical(n_selected, cd78_selection_count()))
+```
+
+### Why 27, not 28?
+
+Walters' paper reports 28 firms. The difference is DEC-197-2:
+ebrecipe stores `pi0` rounded to 4 decimals (`0.3918`), while a manual
+`pi0 = 0.39` selects 28. Both are correct; we follow the package's
+documented convention.
+
+## 9. The decision frontier
+
+```{r decision-frontier, fig.width = 7, fig.height = 5, fig.cap = "Decision frontier on the (theta_hat, s) plane for KRW race. The curve marks the q < 0.05 boundary; firms above it are selected by the FDR rule."}
+# `eb_posterior_grid()` requires `estimates` and `prior` (not a posterior
+# object). Build the live grid here, then overlay the observed posteriors.
+fit_grid <- eb_posterior_grid(estimates = std, prior = prior)
+plot_decision_frontier(
+  observed        = post,
+  grid            = fit_grid,
+  classification  = cls,
+  characteristic  = "race",
+  selection_share = 0.20
+)
+```
+
+## 10. All in one with `eb()`
+
+Stages 1–6 collapse into a single `eb()` call, which is what most
+users will reach for in practice:
+
+```{r monolith}
+fit <- eb(
+  x       = race$theta_hat,
+  s       = race$s,
+  unit_id = race$unit_id,
+  control = eb_control(
+    replication_mode = TRUE,
+    fdr_threshold    = 0.05
+  )
+)
+print(fit)
+```
+
+In `replication_mode = TRUE` the package locks seven control
+parameters (knots, grid, optimizer, etc.) to the values that
+reproduce the MATLAB fixture to $10^{-3}$ tolerance. See
+`vignette("m5-replication-and-reproducibility")` for the lock table.
+
+## Practical pitfalls
+
+1. **Skipping `eb_diagnose()` and forcing nonparametric**. The
+   diagnostic exists for a reason: KRW race has strong level
+   dependence, and skipping standardization will produce an
+   over-smoothed prior or fail to converge.
+2. **Comparing `replication_mode = FALSE` to MATLAB**. The default
+   path is tuned for engineering stability, not bit-exact MATLAB
+   parity. Use `replication_mode = TRUE` for that.
+3. **`alpha_fdr` versus `fdr_level`**. The `eb_control()` argument
+   is `fdr_threshold`; the `eb_classify()` argument is `fdr_level`.
+   Use named arguments.
+
+## Where to next
+
+- **Diagnostics depth**: `vignette("a4-diagnostics-and-standardization")`
+  unpacks Stage 2 — precision dependence — in detail.
+- **Theory of deconvolution**: `vignette("m3-logspline-deconvolution")`
+  derives `eb_deconvolve()` from first principles.
+- **FDR theory**: `vignette("m4-precision-dependence-and-fdr")`
+  proves the FDR control bound and explains the DEC-197 conventions.
+
+## Provenance
+
+```{r provenance}
+sessionInfo()
+```
+
+## References

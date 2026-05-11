@@ -1,0 +1,55 @@
+Package: ebrecipe
+Type: Package
+Title: Log-Spline Empirical Bayes Deconvolution, Shrinkage, and Selection
+Version: 0.5.0
+Authors@R: c(
+    person(
+        "JoonHo", "Lee",
+        email = "jlee296@ua.edu",
+        role = c("aut", "cre")
+    )
+    )
+Description: Implements the three-step empirical Bayes (EB) recipe ---
+    estimate, denoise, decide --- described in Walters (2024, Handbook of
+    Labor Economics, Elsevier), with a log-spline deconvolution engine
+    applicable to any domain where noisy unit-level estimates require
+    shrinkage. Provides a release-candidate logspline EB workflow for
+    unit-level estimation input, precision-dependence diagnostics,
+    Walters-style standardization, log-spline prior deconvolution,
+    posterior shrinkage, false discovery rate control, and decision-rule
+    comparison. Includes both a one-function interface for quick analyses
+    and a composable step-by-step pipeline for advanced workflows, plus a
+    linear school value-added workflow and bundled datasets for the
+    discrimination and simulated VAM examples discussed in Walters (2024).
+    Some optional backend bridges and advanced controls remain intentionally
+    narrow at this checkpoint.
+License: MIT + file LICENSE
+URL: https://github.com/joonho112/ebrecipe, https://joonho112.github.io/ebrecipe/
+BugReports: https://github.com/joonho112/ebrecipe/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    stats,
+    splines
+Suggests:
+    ggplot2 (>= 3.4.0),
+    cli (>= 3.6.0),
+    broom,
+    patchwork,
+    pillar,
+    lifecycle,
+    tibble,
+    generics,
+    digest,
+    numDeriv,
+    deconvolveR,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Encoding: UTF-8
+Language: en-US
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
